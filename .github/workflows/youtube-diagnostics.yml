@@ -1,0 +1,62 @@
+name: YouTube development diagnostics
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: 'Authorized test fixture URL only; no private or personal content'
+        required: true
+        type: string
+        default: 'https://www.youtube.com/watch?v=BaW_jenozKc'
+      language:
+        description: Requested captions language (for example en or pt)
+        required: true
+        type: string
+        default: en
+      mode:
+        description: Controlled development check; never downloads audio/video
+        required: true
+        type: choice
+        options: [connectivity, metadata, captions, all]
+        default: connectivity
+      authorized:
+        description: 'I am authorized to use this public test video and store its short caption sample in artifacts'
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: youtube-development-diagnostics
+  cancel-in-progress: false
+jobs:
+  diagnose:
+    if: ${{ inputs.authorized }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      TEST_VIDEO_URL: ${{ inputs.video_url }}
+      TEST_LANGUAGE: ${{ inputs.language }}
+      TEST_MODE: ${{ inputs.mode }}
+      TEST_AUTHORIZED: ${{ inputs.authorized }}
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install diagnostic dependencies
+        run: python -m pip install --requirement requirements-youtube-test.txt --retries 0 --timeout 20
+      - name: Check dependencies
+        run: python -m pip check
+      - name: Connectivity and authorized caption checks
+        run: python -m transcritor.integration_checks --output artifacts/youtube-diagnostics
+      - name: Save diagnostic report and caption samples
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/youtube-diagnostics/
+          if-no-files-found: warn
+          retention-days: 1

@@ -1,0 +1,10 @@
+# Lightweight diagnostic dependencies, no Whisper/model installation.
+certifi==2026.7.22
+charset-normalizer==3.5.2
+defusedxml==0.7.1
+idna==3.20
+requests==2.34.2
+urllib3==2.8.0
+youtube-transcript-api==1.2.4
+# Optional extractor: record resolved version and pin after the first successful runner.
+yt-dlp>=2025.11.12,<2027
