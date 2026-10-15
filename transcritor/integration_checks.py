@@ -29,6 +29,8 @@ def failure(exc, status=None):
         return {'status':'unavailable','category':'captions_unavailable','exception_type':name}
     if name in ('RequestBlocked','IpBlocked','PoTokenRequired'):
         return {'status':'failed','category':'platform_access_restriction','exception_type':name}
+    if name in ('VideoUnavailable','VideoUnplayable') or 'this video is unavailable' in str(exc).lower():
+        return {'status':'unavailable','category':'video_unavailable','exception_type':name}
     code = status if status is not None else getattr(exc, 'code', None)
     return {'status': 'failed', 'category': classify(exc, code),
             'exception_type': type(exc).__name__, 'http_status': code, 'error': safe_error(exc)}
@@ -60,7 +62,7 @@ def yt_metadata(url):
     # Isolate the extractor, disable user config/plugins/cookies, no downloads or retries.
     command = [sys.executable, '-m', 'yt_dlp', '--ignore-config', '--no-plugin-dirs',
                '--skip-download', '--no-playlist', '--no-cache-dir', '--retries', '0',
-               '--extractor-retries', '0', '--socket-timeout', '10', '--dump-single-json', url]
+               '--extractor-retries', '0', '--socket-timeout', '10', '--js-runtimes', 'node', '--dump-single-json', url]
     try:
         process = subprocess.run(command, text=True, capture_output=True, timeout=50)
     except subprocess.TimeoutExpired as exc:
@@ -191,7 +193,7 @@ def main():
     args.output.mkdir(parents=True,exist_ok=True)
     started=time.monotonic()
     versions={}
-    for name in ['yt-dlp','youtube-transcript-api','requests']:
+    for name in ['yt-dlp','yt-dlp-ejs','youtube-transcript-api','requests']:
         try: versions[name]=version(name)
         except PackageNotFoundError: versions[name]=None
     report={'schema':1,'checked_at_utc':datetime.now(timezone.utc).isoformat(),'video_id':video,

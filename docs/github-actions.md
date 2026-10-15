@@ -16,7 +16,7 @@ Roda em push para main/ci/github-actions, PRs com caminhos relevantes e execuç�
 
 Somente workflow_dispatch; não há cron. Na aba Actions, escolha o workflow e Run workflow. Inputs:
 
-- video_url: vídeo público de teste que você esteja autorizado a usar; default BaW_jenozKc, fixture pública utilizada pelo projeto yt-dlp/youtube-dl. A disponibilidade atual e presença de legendas não foram verificadas daqui.
+- video_url: vídeo público de teste que você esteja autorizado a usar; sem default: a antiga fixture BaW_jenozKc foi reportada indisponível por ambas as ferramentas no primeiro run. Forneça uma URL de teste autorizada e atualmente acessível.
 - language: código desejado, default en; não traduz automaticamente para fabricar trilha ausente.
 - mode: connectivity (duas requisições pequenas), metadata (mais metadados yt-dlp), captions ou all (ambas bibliotecas e amostra de legenda).
 - authorized: marque somente se tiver autorização para acessar e armazenar essa amostra. Sem a marcação, o job é pulado, não há teste bem-sucedido.
@@ -31,7 +31,7 @@ report.json separa DNS local, HTTPS geral, HTTPS YouTube, metadados, trilhas e e
 
 ## Dependências e custos
 
-requirements-ci.lock é uma cópia das versões efetivamente instaladas e testadas no ambiente (inclui PyAV 16). Instalação limpa em runner ainda precisa ser comprovada. requirements-youtube-test.txt instala somente a biblioteca de legendas e suas dependências fixadas, sem Whisper/modelos, além de yt-dlp>=2025.11.12,<2027: a resolução do primeiro teste depende do registry. O relatório registra a versão real; depois do primeiro teste bem-sucedido, fixe essa versão em nova PR. Não foi inventada versão sem acesso ao PyPI. As actions usam tags oficiais v4/v5; podem ser fixadas em SHAs revisados posteriormente.
+requirements-ci.lock é uma cópia das versões efetivamente instaladas e testadas no ambiente (inclui PyAV 16). Instalação limpa em runner ainda precisa ser comprovada. requirements-youtube-test.txt instala apenas as dependências leves de legendas e yt-dlp[default]==2026.8.19, versão observada no primeiro runner. O extra oficial fornece componentes EJS, e setup-node prepara Node 22, habilitado explicitamente com --js-runtimes node. Isso configura o parser/player documentado; não usa cookies, PO tokens ou evasão de CAPTCHA. A disponibilidade do vídeo continua sendo verificação separada. As actions usam tags oficiais v4/v5; podem ser fixadas em SHAs revisados posteriormente.
 
 Use somente ubuntu-24.04 padrão; nada de larger runners, self-hosted pago, cron ou lotes. A elegibilidade gratuita, minutos e armazenamento dependem da conta, visibilidade e condições do GitHub. Confira a franquia e configurações de orçamento na conta antes de executar; não habilite cobrança para esta experiência. Retenção de um dia reduz armazenamento, mas não transforma uso em ilimitado. Dependências baixadas e instalação também consomem minutos. Não há fallback Gemini nem alteração de faturamento.
 
@@ -68,3 +68,7 @@ Alternativa: pelo GitHub no navegador, confirmar repositório privado existente,
 Conectividade e legendas em GitHub-hosted runner só estarão comprovadas após um run real. Runners de datacenter também podem ser recusados pelo YouTube. Não usar proxies residenciais, rotação de IP, CAPTCHA ou técnicas stealth. Um resultado de bloqueio é evidência útil e não deve ser escondido com retry/continue-on-error. Nenhum download de áudio foi implementado.
 
 Após primeiro run: fixar versão yt-dlp realmente funcional, revisar diagnóstico, acrescentar fixtures locais de regressão e definir qual aquisição de mídia é permitida. A lógica continua em módulos Python, portável para outra infraestrutura; Actions só orquestra. Cloudflare Workers poderia orquestrar no futuro, mas não substitui automaticamente um executor Python para Whisper.
+
+## Resumo seguro em anotações
+
+O workflow emite uma notice com estados de conectividade e resultados por ferramenta, sem texto de legendas, URLs assinadas ou credenciais. Pode ser lida pela API oficial de check-runs/annotations quando o download do artefato estiver bloqueado. Não altera permissões: contents:read continua sendo suficiente no job. Os arquivos completos continuam em artefatos de um dia.
