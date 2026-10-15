@@ -59,3 +59,18 @@ class IntegrationChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, patch.object(checks.urllib.request,'urlopen') as request:
             result=checks.ytdlp_captions(info,'en',Path(tmp))
         self.assertEqual(result['category'],'unexpected_caption_destination');request.assert_not_called()
+
+    def test_unavailable_video_is_distinct_from_network_failure(self):
+        unavailable=type('VideoUnavailable',(Exception,),{})('gone')
+        self.assertEqual(checks.failure(unavailable)['category'],'video_unavailable')
+        self.assertEqual(checks.failure('ERROR: [youtube] abc: This video is unavailable')['status'],'unavailable')
+
+    def test_extractor_explicitly_enables_node_without_media_download(self):
+        import subprocess
+        process=subprocess.CompletedProcess([],0,json.dumps({'id':'abc','subtitles':{},'automatic_captions':{}}),'')
+        with patch.object(checks.subprocess,'run',return_value=process) as run:
+            result,_=checks.yt_metadata('https://www.youtube.com/watch?v=65uBZ-kaWzc')
+        command=run.call_args.args[0]
+        self.assertEqual(command[command.index('--js-runtimes')+1],'node')
+        self.assertIn('--skip-download',command)
+        self.assertEqual(result['status'],'passed')

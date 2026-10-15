@@ -6,5 +6,6 @@ idna==3.20
 requests==2.34.2
 urllib3==2.8.0
 youtube-transcript-api==1.2.4
-# Optional extractor: record resolved version and pin after the first successful runner.
-yt-dlp>=2025.11.12,<2027
+# Extractor version observed on the first GitHub-hosted run.
+# Official default extra supplies the EJS components; Node runtime is installed by the workflow.
+yt-dlp[default]==2026.8.19
