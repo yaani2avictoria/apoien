@@ -4,32 +4,19 @@
 
 - O vídeo `meia-entrada.mp4` foi processado localmente no ambiente do Codex com Whisper `base` e pyannote. Os arquivos TXT, SRT e JSON estão em `outputs/meia-entrada-base-pt-diarizado.*`.
 - A saída contém 51 segmentos, timestamps e rótulos de quatro vozes. Os rótulos são estimativas (“Pessoa N”); a transcrição em português precisa de revisão antes de ser tratada como literal.
-- Os arquivos de código estão na branch `feat/multimodal-pilot`, com alterações ainda não commitadas. Os arquivos em `outputs/` são resultados locais e não fazem parte do commit.
+- Os arquivos de código estão na branch `feat/multimodal-pilot`, commit `44a6c20`, já enviada ao GitHub. Os arquivos em `outputs/` são resultados locais e não fazem parte do commit.
 - O GPT personalizado usa uma Action HTTP para o Worker Cloudflare, que chama Gemini. O piloto Whisper + pyannote executado no Codex não foi implantado no Worker e não passa a funcionar no GPT só por salvar os arquivos neste repositório.
 - Nesta sessão não foi feita publicação, deploy, alteração de secret ou chamada Gemini.
 
-## 1. Salvar o trabalho no GitHub
+## 1. Abrir a versão salva no GitHub
 
-No terminal do checkout `/workspace/apoien`, revise primeiro as alterações:
-
-```bash
-git status --short
-git diff
-```
-
-Se estiver tudo correto, salve o código na branch de trabalho:
+O código está salvo na branch de trabalho. Para obter a mesma versão:
 
 ```bash
-git add README.md docs/multimodal-pilot.md docs/guia-finalizar-atualizar-gpt.md \
-  requirements-diarization.txt \
-  tests/test_exports.py tests/test_diarization.py tests/test_sources.py tests/test_visual.py \
-  transcritor/__main__.py transcritor/export.py transcritor/sources.py \
-  transcritor/diarization.py transcritor/visual.py
-git commit -m "Add local Portuguese diarization pilot"
-git push -u origin feat/multimodal-pilot
+git clone --branch feat/multimodal-pilot https://github.com/yaani2avictoria/apoien.git
 ```
 
-Depois, no GitHub, abra um Pull Request de `feat/multimodal-pilot` para `main` e revise-o antes de fazer merge. Não adicione `.venv/`, `.cache/`, `.env`, secrets ou mídia enviada. As saídas em `outputs/` não são incluídas nesses comandos; mantenha-as como artefatos privados, se precisar guardá-las.
+Depois, no GitHub, abra um Pull Request de `feat/multimodal-pilot` para `main` se quiser propor a integração. A branch `main` continua inalterada. Não adicione `.venv/`, `.cache/`, `.env`, secrets ou mídia enviada. As saídas em `outputs/` não estão no GitHub; mantenha-as como artefatos privados, se precisar guardá-las.
 
 ## 2. Entender o que o GPT pode usar hoje
 
