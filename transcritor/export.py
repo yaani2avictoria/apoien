@@ -14,8 +14,12 @@ def export(result, destination):
     base = Path(destination)
     base.parent.mkdir(parents=True, exist_ok=True)
     segments = result['segments']
-    base.with_suffix('.txt').write_text('\n'.join(s['text'] for s in segments)+'\n', encoding='utf-8')
+    base.with_suffix('.txt').write_text(
+        '\n'.join((f"[{s['speaker']}] " if s.get('speaker') else '') + s['text'] for s in segments)+'\n',
+        encoding='utf-8',
+    )
     base.with_suffix('.srt').write_text('\n\n'.join(
-        f"{i}\n{timestamp(s['start'])} --> {timestamp(s['end'])}\n{s['text']}"
+        f"{i}\n{timestamp(s['start'])} --> {timestamp(s['end'])}\n"
+        f"{('[' + s['speaker'] + '] ') if s.get('speaker') else ''}{s['text']}"
         for i, s in enumerate(segments, 1))+'\n', encoding='utf-8')
     base.with_suffix('.json').write_text(json.dumps(result, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')

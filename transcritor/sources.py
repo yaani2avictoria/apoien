@@ -54,7 +54,7 @@ def download(url, target, max_bytes=25*1024*1024):
                 out.write(chunk)
 
 
-def local_audio(path, model, threads, max_seconds):
+def local_audio(path, model, threads, max_seconds, language=None):
     import av
     from faster_whisper import WhisperModel
     if not Path(path).is_file():
@@ -67,10 +67,11 @@ def local_audio(path, model, threads, max_seconds):
             raise TranscriptionError(f'Duração desconhecida ou superior a {max_seconds}s; forneça um trecho curto.')
     engine = WhisperModel(model, device='cpu', compute_type='int8', cpu_threads=threads,
                           num_workers=1, download_root=str(Path('.cache/models').resolve()))
-    stream, info = engine.transcribe(str(path), beam_size=1, vad_filter=False,
+    stream, info = engine.transcribe(str(path), language=language, beam_size=1, vad_filter=False,
                                      condition_on_previous_text=False)
     segments = [dict(start=s.start, end=s.end, text=s.text.strip()) for s in stream]
     if not segments:
         raise TranscriptionError('Nenhuma fala reconhecida; nenhum conteúdo foi criado.')
     return dict(source='local_faster_whisper', model=model, device='cpu', compute_type='int8',
+                requested_language=language,
                 language=info.language, segments=segments)

@@ -16,6 +16,19 @@ class Formats(unittest.TestCase):
             self.assertEqual(base.with_suffix('.txt').read_text(), 'Teste de formato.\n')
             self.assertIn('00:00:00,125 --> 00:00:01,500', base.with_suffix('.srt').read_text())
 
+    def test_visual_evidence_stays_out_of_spoken_text_and_srt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp) / 'enriched'
+            result = {
+                'source': 'local_faster_whisper',
+                'segments': [{'start': 0, 'end': 1, 'text': 'Bom dia.'}],
+                'visual_context': {'observations': [{'timestamp': 0, 'text': 'Nome no slide'}]},
+            }
+            export(result, base)
+            self.assertIn('Nome no slide', json.loads(base.with_suffix('.json').read_text())['visual_context']['observations'][0]['text'])
+            self.assertNotIn('Nome no slide', base.with_suffix('.txt').read_text())
+            self.assertNotIn('Nome no slide', base.with_suffix('.srt').read_text())
+
     def test_rounding(self):
         self.assertEqual(timestamp(59.9999), '00:01:00,000')
 

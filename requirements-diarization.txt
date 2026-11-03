@@ -1,0 +1,10 @@
+# Optional CPU-only speaker diarization; install after the base requirements.
+# Use the official CPU wheels instead of downloading CUDA libraries on this CPU runner.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.2+cpu
+torchaudio==2.2.2+cpu
+numpy<2
+pyannote.audio==3.3.2
+# pyannote.audio 3.x still passes the legacy use_auth_token argument to
+# hf_hub_download; Hugging Face Hub 1.x removed that argument.
+huggingface-hub==0.27.1

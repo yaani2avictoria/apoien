@@ -2,7 +2,7 @@
 
 Protótipo Python sem API de transcrição, conta de provedor ou servidor persistente. Usa `faster-whisper` localmente e `youtube-transcript-api` apenas para legendas acessíveis. Não baixa áudio do YouTube nem tenta contornar bloqueios, autenticação ou DRM.
 
-**Estado verificado:** instalação e testes unitários passaram; a transcrição real e as legendas do YouTube ficaram bloqueadas pela política de rede do Codex Cloud. Consulte [o relatório](reports/viabilidade.md). Exemplos são sintéticos, não transcrições obtidas.
+**Estado verificado:** testes unitários passaram; Whisper tiny transcreveu um vídeo local de 65 segundos em português no Codex Cloud, usando CPU `int8` e sem API paga. A qualidade do modelo tiny foi limitada em nomes próprios e palavras regionais. Acesso a legendas do YouTube continua dependente das restrições externas. Consulte [o relatório](reports/viabilidade.md) e [o piloto multimodal](docs/multimodal-pilot.md).
 
 ## Instalação
 
@@ -42,29 +42,52 @@ Esse trecho de discurso presidencial de John F. Kennedy está disponível no pro
 
 Também é possível passar caminho de vídeo ou URL HTTPS direta de mídia autorizada com `--authorized`. URLs do YouTube tentam somente recuperar legendas; se indisponíveis, o programa termina com erro. Forneça separadamente um arquivo autorizado para usar reconhecimento local. `--model base` é opcional e não foi validado aqui.
 
-O modelo é executado em CPU, `int8`, duas threads por padrão, um worker e beam size 1. A primeira execução precisa baixar o modelo do Hugging Face. O cache fica em `.cache/models`. Não existe fallback para serviço pago. A língua é detectada automaticamente no reconhecimento; `--languages` seleciona idiomas de legendas do YouTube.
+O modelo é executado em CPU, `int8`, duas threads por padrão, um worker e beam size 1. Os modelos Whisper tiny/base são multilíngues: por padrão, a língua é detectada automaticamente; use `--language pt` para forçar português. A primeira execução precisa baixar o modelo do Hugging Face. O cache fica em `.cache/models`. Não existe fallback para serviço pago. `--languages` seleciona idiomas de legendas do YouTube.
+
+### Diarização opcional (experimental)
+
+`--diarize` usa o pipeline local `pyannote/speaker-diarization-3.1` para associar trechos de áudio a “Pessoa 1”, “Pessoa 2” etc. Esses rótulos distinguem vozes e não identificam nomes. Para usar, instale `requirements-diarization.txt`, aceite os termos/acesso do modelo no Hugging Face e configure `HF_TOKEN` como secret do ambiente; nunca coloque o token no repositório ou no chat. A lista opcional fixa as wheels CPU do PyTorch e evita baixar bibliotecas CUDA. Ainda assim, PyTorch e o modelo adicionam downloads/cache consideráveis e mais uso de CPU/RAM. A primeira execução requer rede; as seguintes podem reutilizar o cache. Segmentos sem evidência temporal suficiente ficam sem rótulo.
+
+```bash
+timeout 180 .venv/bin/python -m transcritor arquivo-autorizado.mp4 --authorized --model base --language pt --diarize --max-seconds 90 --output outputs/com-vozes
+```
+
+A implementação e os testes unitários estão preparados, mas a inferência pyannote ainda não foi executada neste ambiente: a política de rede observada está `unknown`, o modelo não está instalado/cacheado e nenhum `HF_TOKEN` está configurado. Portanto, ainda não considere a diarização validada em áudio real.
 
 Se já tiver um modelo CTranslate2 tiny/base oficial transferido por via autorizada, use `--model-dir /caminho/do/modelo` para carregá-lo localmente. Esse caminho alternativo ainda não foi validado com um modelo nesta sessão.
 
 Em sucesso são criados `<output>.txt`, `.srt` e `.json` com timestamps em segundos no JSON e milissegundos no SRT. O TXT contém apenas o texto. A origem identifica `youtube_captions` ou `local_faster_whisper`; legendas automáticas são identificadas pelo campo `generated`. A execução escreve status, tempo e pico de RSS do processo em stderr e retorna 0 em sucesso ou 1 em falha. `timeout` pode retornar 124 se interromper o processo; nesse caso a medição final pode não existir. Escolha uma saída nova: arquivos existentes com o mesmo nome serão substituídos em sucesso.
 
+### Piloto local de texto visível no vídeo (experimental)
+
+Para acrescentar evidência visual sem API, use `--visual-ocr` com um arquivo local autorizado. O modo amostra no máximo 20 quadros, reduz cada quadro para até 1280×720 e usa Tesseract instalado no ambiente (`eng` por padrão). O JSON ganha `visual_context.observations`, com texto reconhecido, horário, confiança do OCR e índice do segmento de fala temporalmente mais próximo. O TXT e o SRT continuam contendo somente fala reconhecida pelo Whisper; observações visuais não são inseridas como diálogo. O código confere os pacotes de idioma disponíveis; para OCR em português, instale os dados `por` do Tesseract e informe `--ocr-languages por+eng`.
+
+```bash
+timeout 150 .venv/bin/python -m transcritor samples/video-curto.mp4 --authorized --model tiny --threads 2 --max-seconds 60 --visual-ocr --frame-interval 10 --output outputs/video-piloto
+```
+
+Esse piloto lê texto que aparece na imagem; não descreve cenas nem identifica quem está falando. Um texto como “Ana Souza” na tela é registrado como evidência OCR, sem atribuí-lo à pessoa que fala. Os horários servem para aproximar a observação do segmento de áudio, não provam que a pessoa visível seja a locutora. OCR pode confundir caracteres e sai marcado como não verificado; confira o JSON antes de reutilizar nomes. Se não houver texto legível, o sistema registra zero observações em vez de inventar contexto. O processamento é local e não chama Gemini nem baixa mídia.
+
+O teste com um vídeo local de cerca de 65 segundos não obteve texto via OCR, apesar de haver uma tarja legível em um dos quadros inspecionados manualmente. A camada de áudio foi transcrita com Whisper tiny em português; veja [resultado e próximos passos](docs/multimodal-pilot.md). A saída é um rascunho sujeito a revisão.
+
+Para uma próxima fase com descrições semânticas de imagens seria necessário escolher e baixar um modelo visual local, medindo tamanho, memória e tempo; isso ainda não está instalado nem validado.
+
 ## Rede, segurança e limites
 
-- PyPI e arquivos do GitHub estavam acessíveis. Hugging Face e YouTube foram negados pelo proxy com 403.
-- Os domínios necessários foram salvos no rascunho do ambiente; salvar o rascunho não altera automaticamente a máquina atual. Revise e salve as configurações de rede e publique o ambiente quando apropriado. Depois, refaça os testes. A liberação não garante que o YouTube permita acesso.
+- A política atual observada está `enforced` e permite `huggingface.co` e `us.aws.cdn.hf.co`; isso possibilitou baixar o modelo Whisper tiny. A liberação do Hugging Face não garante que o YouTube permita acesso.
 - Não forneça chaves de API. Não é necessário usar OpenAI API, VPN ou serviço pago.
 - A execução pode ter erros de acesso, rede, decoder, dependências ou memória; a mensagem mantém o tipo da falha. O RSS mede somente este processo, não o ambiente inteiro. O limite preventivo de duração não torna seguro processar arquivos hostis ou arbitrariamente grandes.
 - Não há garantia observada de prazo máximo da sessão, armazenamento durável ou restauração em uma nova tarefa. Não confie na sobrevivência de processos. Preserve fontes e resultados pelo fluxo de publicação ou exportação da plataforma.
 
 ## Organização
 
-`transcritor/sources.py`: obtenção de legendas, download limitado e inferência; `export.py`: TXT/SRT/JSON; `__main__.py`: CLI, erros e medições. `tests/` contém testes sem rede. `examples/` mostra apenas formatos. `reports/` registra evidências e limitações.
+`transcritor/sources.py`: obtenção de legendas, download limitado e inferência; `visual.py`: OCR opcional e local em quadros amostrados; `export.py`: TXT/SRT/JSON; `__main__.py`: CLI, erros e medições. `tests/` contém testes sem rede. `examples/` mostra apenas formatos. `reports/` registra evidências e limitações.
 
 ## Próxima skill reutilizável
 
 Crie uma skill com diagnóstico de CPU/RAM/disco/rede, checagem do ambiente virtual e cache, confirmação da autorização da mídia, preferência por legendas, teste tiny de até 60 segundos e execução sob `timeout`. Registre proveniência, tempos, RSS e erros, e nunca trate um teste de formato como transcrição real. Reutilize o checkout existente; não crie worktrees. Mantenha instalação separada da execução, sem daemon e sem baixar modelos novamente quando o cache estiver válido. Só amplie modelo e duração após uma transcrição real bem-sucedida. Uma skill não altera a política de rede nem garante recursos gratuitos ilimitados.
 
-## Ajuste de cache no Codex Cloud após publicação
+## Cache do Hugging Face no Codex Cloud
 
 Antes da inferência, configure um cache gravável:
 
@@ -73,9 +96,9 @@ export HF_HOME=/workspace/apoien/.cache/huggingface
 export HF_XET_CACHE=/workspace/apoien/.cache/huggingface/xet
 ```
 
-O reteste publicado liberou huggingface.co, mas os pesos redirecionam para `us.aws.cdn.hf.co`, ainda bloqueado. Esse domínio foi acrescentado ao novo rascunho. YouTube continuou com 403 apesar de constar na configuração publicada. Veja os detalhes no fim do relatório; ainda não há transcrição real validada.
+Configure as variáveis abaixo para manter o cache em diretório gravável e desativar o transporte Xet durante o primeiro download:
 
-## Transferir o modelo para execução local no Codex
+## Transferência opcional do modelo
 
 Em computador próprio com acesso permitido ao Hugging Face, execute `tools/preparar_modelo.py` após instalar `huggingface-hub` em um ambiente virtual. Ele baixa apenas o modelo tiny oficial, fixa a revisão resolvida, registra SHA-256 dos arquivos e cria `faster-whisper-tiny.tar.gz`, sem conta paga ou API de transcrição. O script foi preparado, mas seu download externo ainda não foi executado/validado nesta sessão.
 
@@ -87,7 +110,7 @@ Com o diretório validado no Codex, o teste será:
 HF_HUB_OFFLINE=1 timeout 120 .venv/bin/python -m transcritor samples/jfk.wav --authorized --model-dir /workspace/apoien/models/faster-whisper-tiny --threads 2 --output outputs/jfk-offline
 ```
 
-O modelo completo ainda é um requisito pendente; o comando offline não foi validado com inferência real.
+Esse caminho continua disponível para ambientes sem acesso ao Hugging Face; neste ambiente o modelo tiny já foi baixado e validado.
 
 ## Resultado atualizado: transcrição real aprovada
 
