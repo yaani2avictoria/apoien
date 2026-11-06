@@ -42,7 +42,23 @@ Dentro do Claude Code:
 /plugin install instagram-agent-ptbr@apoien
 ```
 
-### Opção 3: sem Claude Code
+### Opção 3: no claude.ai (navegador, app de computador e conta no celular)
+
+As skills ficam na sua conta do Claude. Os scripts em Python rodam no
+ambiente do próprio Claude, então as notas funcionam.
+
+1. Gere um .zip por skill (da raiz do repositório):
+   `python3 instagram-agent-ptbr/tools/empacotar_zips.py dist/skills-zip`
+2. No claude.ai, ligue a execução de código em Configurações > Capacidades
+   ("Criar e editar arquivos").
+3. Em Personalizar > Skills, toque em "+", depois "Criar skill" e "Enviar uma
+   skill". Envie um .zip de cada vez.
+
+O envio é feito pelo claude.ai no navegador ou no app de computador. A
+documentação oficial não confirma se o app de celular usa as skills enviadas;
+teste com um pedido como "faz um reels sobre X".
+
+### Opção 4: sem instalar nada
 
 Abra o `SKILL.md` da skill que quiser (por exemplo `skills/ig-caption/SKILL.md`),
 copie tudo e cole no começo de uma conversa com o Claude. Funciona, mas sem os
@@ -189,6 +205,7 @@ skills/ig-human/humanize.py        as três passadas de limpeza
 skills/ig-human/detect.py          o painel de cinco checagens
 skills/ig-viral/swipe.py           ranking por múltiplo e classificação de fórmula
 skills/ig-profile/rubric.json      a nota de 100 pontos do perfil
+tools/empacotar_zips.py            gera um .zip por skill para enviar no claude.ai
 templates/voice.md                 seu perfil de voz. Preencha primeiro.
 tests/test_ferramentas.py          testes dos scripts
 ```

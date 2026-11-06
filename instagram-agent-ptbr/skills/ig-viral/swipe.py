@@ -40,14 +40,19 @@ import sys
 import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HOOKS = os.path.join(HERE, "..", "ig-reel", "hooks.json")
+REEL = os.path.join(HERE, "..", "ig-reel")
+# Instalada junto com a ig-reel, usa os arquivos dela. Enviada sozinha (por
+# exemplo como .zip no claude.ai), usa as cópias que vierem nesta pasta.
+HOOKS = next((p for p in (os.path.join(REEL, "hooks.json"), os.path.join(HERE, "hooks.json"))
+              if os.path.exists(p)), os.path.join(REEL, "hooks.json"))
 NUM = r"\d(?:[.,]?\d)*"
 WORD_RE = re.compile(r"R\$\s?" + NUM + r"%?|" + NUM + r"%?|[^\W\d_][\w'’-]*")
 
 try:                                              # opcional: dá nota aos ganchos também
-    sys.path.insert(0, os.path.join(HERE, "..", "ig-reel"))
+    sys.path.insert(0, HERE)
+    sys.path.insert(0, REEL)
     from hookscore import run as score_hook       # noqa: E402
-except Exception:                                 # ig-viral copiado sozinho
+except Exception:                                 # sem hookscore.py por perto
     score_hook = None
 
 COLUMN_ALIASES = {
