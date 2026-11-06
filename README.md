@@ -156,7 +156,3 @@ Cache evita requisições duplicadas idênticas; não verifica fidelidade ou cot
 ## Desenvolvimento com GitHub Actions
 
 A primeira integração está em `.github/workflows/tests.yml` (unitários e smoke offline) e `.github/workflows/youtube-diagnostics.yml` (diagnóstico manual autorizado, sem áudio/vídeo e sem Gemini). Instruções, limites de uso e leitura de artefatos: [docs/github-actions.md](docs/github-actions.md). A execução real em runner ainda não foi realizada; não presuma acesso ao YouTube.
-
-## Skills de Instagram em português
-
-A pasta [`instagram-agent-ptbr/`](instagram-agent-ptbr/README.md) traz 13 skills do Claude para Instagram adaptadas para português do Brasil (Reels, legenda, carrossel, stories, perfil, plano da semana, comentários, respostas, directs, reaproveitamento, auditoria e humanizador), a partir do projeto MIT [instagram-agent-skill](https://github.com/Jakeschincariol/instagram-agent-skill). É independente do transcritor: instalação e testes estão no README da pasta.
